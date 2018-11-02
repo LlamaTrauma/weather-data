@@ -1,6 +1,9 @@
 import requests
 import pandas
+import sqlalchemy
+from sqlalchemy import create_engine
 from bs4 import BeautifulSoup
+import sqlite3
 page = requests.get('https://weather.com/weather/tenday/l/USOR0190:1:US')
 soup = BeautifulSoup(page.content, 'html.parser')
 feed = soup.select('main.region.region-main')
@@ -15,4 +18,26 @@ frame = pandas.DataFrame({
     "Temp": temps,
     "More": descs
 })
-print(frame)
+
+conn = sqlite3.connect('weather-sql.db')
+
+c = conn.cursor()
+
+conn.execute('DROP TABLE IF EXISTS forecast')
+
+conn.execute('''CREATE TABLE forecast(
+        DATE        text,
+        DESC        text,
+        TEMP        text,
+        MORE        text
+        )''')
+
+for i in range(0, len(days) - 1, 1):
+    conn.execute('INSERT INTO forecast VALUES(?, ?, ?, ?)', (str(days[i]), str(descs[i]), str(temps[i]), str(descs2[i])))
+
+for i in c.execute('SELECT * FROM forecast ORDER BY DATE'):
+    print(i)
+
+conn.commit()
+
+conn.close()
